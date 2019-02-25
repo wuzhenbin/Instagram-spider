@@ -6,7 +6,8 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from pyquery import PyQuery as pq
-import pymongo
+from utils import *
+
 import math
 import time
 import re
@@ -17,18 +18,6 @@ driver = webdriver.Chrome(options=chrome_options)
 
 wait = WebDriverWait(driver, 10)
 
-MONGO_URL = 'localhost'
-MONGO_DB = 'instagram'
-MONGO_TABLE = 'video_url'
-
-def save_to_mongo(result):
-    if db[MONGO_TABLE].update({'id': result['id']},{'$set': result}, True):
-        print('存储成功',result)
-        return True
-    return False
-
-def browse_action():
-    driver.execute_script( 'window.scrollTo(0, document.body.scrollHeight)')
 
 def main():
     try:
@@ -42,7 +31,6 @@ def main():
         thread_res =  doc.find('.g47SY:first').text()
         thread_num = "".join(list(filter(lambda x: x in '1234567890', thread_res))) 
         scroll_times = math.ceil(int(thread_num)/8)
-        video_urls = []
 
         for i in range(scroll_times):
             browse_action()
@@ -60,13 +48,15 @@ def main():
                 pattern = re.compile('.*p/(.*)/.*?')
                 results = re.findall(pattern,url)
                 result_id = results[0]
-                video_urls.append({'url': url, 'id': result_id, 'is_video': is_video})
-
-        for item in video_urls:
-            save_to_mongo(item)
+                item = {
+                    'url': url, 
+                    'id': result_id, 
+                    'is_video': is_video
+                }
+                save_to_mongo(item)
 
     except TimeoutException:
         pass
 
 if __name__ == '__main__':
-	main()
+    main()
